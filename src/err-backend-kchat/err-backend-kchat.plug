@@ -1,0 +1,9 @@
+[Core]
+Name = kChat
+Module = err-backend-kchat
+
+[Documentation]
+Description = kChat backend for Errbot.
+Author = Léopold Jacquot and Errbot backend contributors
+Version = 3.0.0
+Website = https://github.com/infomaniak/errbot-kchat-backend
