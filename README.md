@@ -2,6 +2,8 @@
 
 This is the kChat backend for errbot.
 
+Python 3.7 to 3.11 is supported.
+
 1. Create a virtual environment for errbot.
 
 ```shell

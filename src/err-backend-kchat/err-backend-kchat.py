@@ -102,8 +102,7 @@ class KchatBackend(ErrBot):
             self.event_handlers[event] = []
         self.event_handlers[event].append(handler)
 
-    @asyncio.coroutine
-    def kchat_event_handler(self, payload):
+    async def kchat_event_handler(self, payload):
         if not payload:
             return
 
