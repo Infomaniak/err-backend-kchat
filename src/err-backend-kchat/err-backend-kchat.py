@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from functools import lru_cache
@@ -8,6 +7,7 @@ from errbot.backends.base import (
     Presence,
     ONLINE,
     AWAY,
+    OFFLINE,
     UserDoesNotExistError,
     RoomDoesNotExistError,
     RoomOccupant,
@@ -224,7 +224,7 @@ class KchatBackend(ErrBot):
                 channelid=channelid,
                 teamid=self.teamid,
             )
-        elif channel_type == "O" or channel_type == "P":
+        else:
             msg.frm = KchatRoomOccupant(
                 self.driver,
                 userid=userid,
@@ -233,13 +233,6 @@ class KchatBackend(ErrBot):
                 bot=self,
             )
             msg.to = KchatRoom(channel, teamid=self.teamid, bot=self)
-        else:
-            log.warning(
-                "Unknown channel type '{}'! Unable to handle {}.".format(
-                    channel_type, channel
-                )
-            )
-            return
 
         self.callback_message(msg)
 
@@ -254,6 +247,8 @@ class KchatBackend(ErrBot):
             status = ONLINE
         elif status == "away":
             status = AWAY
+        elif status == "offline":
+            status = OFFLINE
         else:
             log.error(
                 "It appears the Kchat API changed, I received an unknown status type %s"
