@@ -192,11 +192,13 @@ class KchatBackend(ErrBot):
 
         # Thread root post id
         root_id = post.get("root_id", "")
-        if root_id == "":
-            root_id = post_id
+        parent = None
+        if root_id != "":
+            parent = self.driver.posts.get_post(root_id)
 
         msg = Message(
             text,
+            parent=parent,
             extras={
                 "id": post_id,
                 "root_id": root_id,
@@ -377,7 +379,7 @@ class KchatBackend(ErrBot):
             to_name = message.to.username
 
             if isinstance(
-                message.to, RoomOccupant
+                    message.to, RoomOccupant
             ):  # private to a room occupant -> this is a divert to private !
                 log.debug(
                     "This is a divert to private message, sending it directly to the user."
@@ -466,11 +468,11 @@ class KchatBackend(ErrBot):
             # Todo: Reminder to check if this is still the case
             self.driver.webhooks.call_webhook(self.cards_hook, options=data)
         except (
-            InvalidOrMissingParameters,
-            NotEnoughPermissions,
-            ContentTooLarge,
-            FeatureDisabled,
-            NoAccessTokenProvided,
+                InvalidOrMissingParameters,
+                NotEnoughPermissions,
+                ContentTooLarge,
+                FeatureDisabled,
+                NoAccessTokenProvided,
         ):
             log.exception(
                 "An exception occurred while trying to send a card to %s.[%s]"
@@ -513,6 +515,12 @@ class KchatBackend(ErrBot):
 
     def is_from_self(self, message: Message):
         return self.bot_identifier.userid == message.frm.userid
+
+    def user_is_typing(self, channelid, parentid=None):
+        self.driver.users.user_is_typing(
+            self.bot_identifier.userid,
+            {"channel_id": channelid, "parent_id": parentid}
+        )
 
     def shutdown(self):
         self.driver.logout()
