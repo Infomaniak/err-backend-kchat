@@ -263,6 +263,7 @@ class KchatBackend(ErrBot):
         """Event handler for the 'hello' event"""
         self.connect_callback()
         self.callback_presence(Presence(identifier=self.bot_identifier, status=ONLINE))
+        self.change_presence()
 
     @lru_cache(1024)
     def get_direct_channel(self, userid, other_user_id):
@@ -511,7 +512,10 @@ class KchatBackend(ErrBot):
         return parts
 
     def change_presence(self, status: str = ONLINE, message: str = ""):
-        pass  # Kchat does not have a request/websocket event to change the presence
+        self.driver.status.update_user_status(
+            self.bot_identifier.userid,
+            {"user_id": self.bot_identifier.userid, "status": status}
+        )
 
     def is_from_self(self, message: Message):
         return self.bot_identifier.userid == message.frm.userid
@@ -523,6 +527,7 @@ class KchatBackend(ErrBot):
         )
 
     def shutdown(self):
+        self.change_presence(status=OFFLINE)
         self.driver.logout()
         super().shutdown()
 
