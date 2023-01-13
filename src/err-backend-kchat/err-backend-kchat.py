@@ -8,6 +8,7 @@ from errbot.backends.base import (
     ONLINE,
     AWAY,
     OFFLINE,
+    DND,
     UserDoesNotExistError,
     RoomDoesNotExistError,
     RoomOccupant,
@@ -251,6 +252,8 @@ class KchatBackend(ErrBot):
             status = AWAY
         elif status == "offline":
             status = OFFLINE
+        elif status == "dnd":
+            status = DND
         else:
             log.error(
                 "It appears the Kchat API changed, I received an unknown status type %s"
