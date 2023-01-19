@@ -513,18 +513,11 @@ class KchatBackend(ErrBot):
                 for key, value in card.fields
             ]
 
-        data = {"attachments": [attachment]}
-
-        if card.to:
-            if isinstance(card.to, KchatRoom):
-                data["channel"] = card.to.name
+        data = {"attachments": [attachment], "channel_id": card.to.channelid}
 
         try:
             log.debug("Sending data:\n%s", data)
-            # We need to send a webhook - kChat has no api endpoint for attachments/cards
-            # For this reason, we need to build our own url, since we need /hooks and not /api/v4
-            # Todo: Reminder to check if this is still the case
-            self.driver.webhooks.call_webhook(self.cards_hook, options=data)
+            self.driver.posts.create_post(options=data)
         except (
                 InvalidOrMissingParameters,
                 NotEnoughPermissions,
