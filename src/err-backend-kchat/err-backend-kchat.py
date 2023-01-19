@@ -191,7 +191,6 @@ class KchatBackend(ErrBot):
 
         mentions = []
         if "mentions" in data:
-            # TODO: Only user, not channel mentions are in here at the moment
             mentions = self.mentions_build_identifier(data["mentions"])
 
         # Thread root post id
@@ -326,8 +325,7 @@ class KchatBackend(ErrBot):
     def mentions_build_identifier(self, mentions):
         identifier = []
         for mention in mentions:
-            if mention != self.bot_identifier.userid:
-                identifier.append(self.build_identifier(mention))
+            identifier.append(self.build_identifier(mention))
         return identifier
 
     def serve_once(self):
