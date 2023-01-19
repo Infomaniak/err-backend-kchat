@@ -1,6 +1,7 @@
 import json
 import logging
 from functools import lru_cache
+from typing import BinaryIO
 
 from errbot.backends.base import (
     Message,
@@ -13,6 +14,8 @@ from errbot.backends.base import (
     RoomDoesNotExistError,
     RoomOccupant,
     Card,
+    Identifier,
+    Stream
 )
 from errbot.core import ErrBot
 from errbot.rendering import md
@@ -428,6 +431,57 @@ class KchatBackend(ErrBot):
                 "An exception occurred while trying to send the following message "
                 "to %s: %s" % (to_name, message.body)
             )
+
+    def _kchat_upload(self, stream: Stream, channel_id: str) -> None:
+        """
+        Performs an upload defined in a stream
+        :param stream: Stream object
+        :return: None
+        """
+        try:
+            stream.accept()
+
+            resp = self.driver.files.upload_file(
+                channel_id=channel_id, files={'files': (stream.name, stream.raw)}
+            )
+            stream.file_id = resp.get("file_infos")[0]["id"]
+            if resp.get("file_infos"):
+                stream.success()
+            else:
+                stream.error()
+        except Exception:
+            log.exception(
+                f"Upload of {stream.name} to {channel_id} failed."
+            )
+
+    def send_stream_request(
+            self,
+            user: Identifier,
+            fsource: BinaryIO,
+            name: str = None,
+            size: int = None,
+            stream_type: str = None,
+    ) -> Stream:
+        """
+        Starts a file transfer. For kChat, the size and stream_type are unsupported
+        :param user: is the identifier of the person you want to send it to.
+        :param fsource: is a file object you want to send.
+        :param name: is an optional filename for it.
+        :param size: not supported in kChat backend
+        :param stream_type: not supported in kChat backend
+        :return Stream: object on which you can monitor the progress of it.
+        """
+        stream = Stream(user, fsource, name, size, stream_type)
+        if isinstance(user, KchatPerson):
+            channel_id = user.channelid
+        else:
+            channel_id = user.id
+        log.debug(
+            f"Requesting upload of {name} to {channel_id} "
+            f"(size hint: {size}, stream type: {stream_type})."
+        )
+        self._kchat_upload(stream, channel_id)
+        return stream
 
     def send_card(self, card: Card):
         if isinstance(card.to, RoomOccupant):
