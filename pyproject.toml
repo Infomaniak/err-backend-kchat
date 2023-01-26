@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "kchatdriver>=0.0.1",
+    "kchatdriver>=0.0.5",
 ]
 
 [tool.setuptools]
