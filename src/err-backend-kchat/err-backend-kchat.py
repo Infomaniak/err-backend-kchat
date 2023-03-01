@@ -53,6 +53,8 @@ class KchatBackend(ErrBot):
     def __init__(self, config):
         super().__init__(config)
         identity = config.BOT_IDENTITY
+        log.setLevel(config.BOT_LOG_LEVEL)
+
         self._login = identity.get("login", None)
         self._password = identity.get("password", None)
         self._personal_access_token = identity.get("token", None)
@@ -341,6 +343,7 @@ class KchatBackend(ErrBot):
                 "password": self._password,
                 "token": self._personal_access_token,
                 "mfa_token": self._mfa_token,
+                "debug": log.getEffectiveLevel() == logging.DEBUG
             }
         )
         self.driver.login()
