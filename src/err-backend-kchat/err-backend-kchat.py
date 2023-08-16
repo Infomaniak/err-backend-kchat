@@ -89,7 +89,7 @@ class KchatBackend(ErrBot):
 
     @property
     def userid(self):
-        return "{}".format(self.bot_identifier.userid)
+        return f"{self.bot_identifier.userid}"
 
     @property
     def mode(self):
@@ -100,7 +100,7 @@ class KchatBackend(ErrBot):
         name = name.lstrip("@")
         user = self.driver.users.get_user_by_username(username=name)
         if user is None:
-            raise UserDoesNotExistError("Cannot find user {}".format(name))
+            raise UserDoesNotExistError(f"Cannot find user {name}")
         return user["id"]
 
     def register_handler(self, event, handler):
@@ -114,21 +114,21 @@ class KchatBackend(ErrBot):
 
         payload = json.loads(payload)
         if "event" not in payload:
-            log.debug("Message contains no event: {}".format(payload))
+            log.debug(f"Message contains no event: {payload}")
             return
 
         event = payload["event"]
         event_handlers = self.event_handlers.get(event)
 
         if event_handlers is None:
-            log.debug("No event handlers available for {}, ignoring.".format(event))
+            log.debug(f"No event handlers available for {event}, ignoring.")
             return
         # noinspection PyBroadException
         for event_handler in event_handlers:
             try:
                 event_handler(payload)
             except Exception:
-                log.exception("{} event handler raised an exception".format(event))
+                log.exception(f"{event} event handler raised an exception")
 
     def _room_joined_event_handler(self, message):
         log.debug("User added to channel")
@@ -146,27 +146,18 @@ class KchatBackend(ErrBot):
 
         # In some cases (direct messages) team_id is an empty string
         if data["team_id"] != "" and self.teamid != data["team_id"]:
-            log.info(
-                "Message came from another team ({}), ignoring...".format(
-                    data["team_id"]
-                )
-            )
+            log.info(f'Message came from another team ({data["team_id"]}), ignoring...')
             return
 
         if "channel_id" in data:
             channelid = data["channel_id"]
-        elif "channel_id" in data:
-            channelid = data["channel_id"]
         else:
-            log.error("Couldn't find a channelid for event {}".format(message))
+            log.error(f"Couldn't find a channelid for event {message}")
             return
 
         channel_type = data["channel_type"]
 
-        if channel_type != "D":
-            channel = data["channel_name"]
-        else:
-            channel = channelid
+        channel = data["channel_name"] if channel_type != "D" else channelid
 
         text = ""
         post_id = ""
@@ -188,7 +179,7 @@ class KchatBackend(ErrBot):
             userid = data["user_id"]
 
         if not userid:
-            log.error("No userid in event {}".format(message))
+            log.error(f"No userid in event {message}")
             return
 
         mentions = []
@@ -197,10 +188,7 @@ class KchatBackend(ErrBot):
 
         # Thread root post id
         root_id = post.get("root_id", "")
-        parent = None
-        if root_id != "":
-            parent = self.driver.posts.get_post(root_id)
-
+        parent = self.driver.posts.get_post(root_id) if root_id != "" else None
         msg = Message(
             text,
             parent=parent,
@@ -259,10 +247,7 @@ class KchatBackend(ErrBot):
         elif status == "dnd":
             status = DND
         else:
-            log.error(
-                "It appears the Kchat API changed, I received an unknown status type %s"
-                % status
-            )
+            log.error(f"It appears the Kchat API changed, I received an unknown status type {status}")
             status = ONLINE
         self.callback_presence(Presence(identifier=idd, status=status))
 
@@ -279,15 +264,9 @@ class KchatBackend(ErrBot):
         If it does not exist, it will be created.
         """
         try:
-            return self.driver.channels.create_direct_message_channel(
-                options=[userid, other_user_id]
-            )
+            return self.driver.channels.create_direct_message_channel(options=[userid, other_user_id])
         except (InvalidOrMissingParameters, NotEnoughPermissions):
-            raise RoomDoesNotExistError(
-                "Could not find Direct Channel for users with ID {} and {}".format(
-                    userid, other_user_id
-                )
-            )
+            raise RoomDoesNotExistError(f"Could not find Direct Channel for users with ID {userid} and {other_user_id}")
 
     def build_identifier(self, txtrep):
         """
@@ -308,12 +287,7 @@ class KchatBackend(ErrBot):
                 return KchatRoom(channelid=channelid, teamid=self.teamid, bot=self)
         else:
             # Assuming either a channelid or a username
-            if txtrep.startswith("@"):
-                # Username
-                userid = self.username_to_userid(txtrep[1:])
-            else:
-                # Channelid
-                userid = txtrep
+            userid = self.username_to_userid(txtrep[1:]) if txtrep.startswith("@") else txtrep
 
             if userid is not None:
                 return KchatPerson(
@@ -322,13 +296,10 @@ class KchatBackend(ErrBot):
                     channelid=self.get_direct_channel(self.userid, userid)["id"],
                     teamid=self.teamid,
                 )
-        raise Exception("Invalid or unsupported Kchat identifier: %s" % txtrep)
+        raise Exception(f"Invalid or unsupported Kchat identifier: {txtrep}")
 
     def mentions_build_identifier(self, mentions):
-        identifier = []
-        for mention in mentions:
-            identifier.append(self.build_identifier(mention))
-        return identifier
+        return [self.build_identifier(mention) for mention in mentions]
 
     def serve_once(self):
         self.driver = Driver(
@@ -406,9 +377,7 @@ class KchatBackend(ErrBot):
             to_name, to_channel_id = self._prepare_message(message)
 
             message_type = "direct" if message.is_direct else "channel"
-            log.debug(
-                "Sending %s message to %s (%s)" % (message_type, to_name, to_channel_id)
-            )
+            log.debug(f"Sending {message_type} message to {to_name} ({to_channel_id})")
 
             body = self.md.convert(message.body)
             log.debug("Message size: %d" % len(body))
@@ -473,10 +442,7 @@ class KchatBackend(ErrBot):
         :return Stream: object on which you can monitor the progress of it.
         """
         stream = Stream(user, fsource, name, size, stream_type)
-        if isinstance(user, KchatPerson):
-            channel_id = user.channelid
-        else:
-            channel_id = user.id
+        channel_id = user.channelid if isinstance(user, KchatPerson) else user.id
         log.debug(
             f"Requesting upload of {name} to {channel_id} "
             f"(size hint: {size}, stream type: {stream_type})."
@@ -526,10 +492,7 @@ class KchatBackend(ErrBot):
                 FeatureDisabled,
                 NoAccessTokenProvided,
         ):
-            log.exception(
-                "An exception occurred while trying to send a card to %s.[%s]"
-                % (to_humanreadable, card)
-            )
+            log.exception(f"An exception occurred while trying to send a card to {to_humanreadable}.[{card}]")
 
     def prepare_message_body(self, body, size_limit):
         """
@@ -652,11 +615,7 @@ class KchatBackend(ErrBot):
         """Convert the channelid in the current team to the channel name"""
         channel = self.driver.channels.get_channel(channel_id=channelid)
         if "name" not in channel:
-            raise RoomDoesNotExistError(
-                "No channel with ID {} exists in team with ID {}".format(
-                    id, self.teamid
-                )
-            )
+            raise RoomDoesNotExistError(f"No channel with ID {id} exists in team with ID {self.teamid}")
         return channel["name"]
 
     def channelname_to_channelid(self, name):
@@ -665,11 +624,7 @@ class KchatBackend(ErrBot):
             team_id=self.teamid, channel_name=name
         )
         if "id" not in channel:
-            raise RoomDoesNotExistError(
-                "No channel with name {} exists in team with ID {}".format(
-                    name, self.teamid
-                )
-            )
+            raise RoomDoesNotExistError(f"No channel with name {name} exists in team with ID {self.teamid}")
         return channel["id"]
 
     def __hash__(self):
